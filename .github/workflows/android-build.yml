@@ -1,57 +1,78 @@
 name: Build Android APK
-on: [push, workflow_dispatch]
+
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
-          distribution: 'temurin'
+          distribution: temurin
+          java-version: '17'
 
-      - name: Install Android SDK & NDK Default
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Stable Android NDK r25c
+      - name: Install Android NDK r25c
         run: |
-          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;21.4.7075529"
-          
-          # FIX: Securely inject variables permanently across ALL steps using GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/21.4.7075529" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=${ANDROID_SDK_ROOT}/ndk/21.4.7075529" >> $GITHUB_ENV
+          sdkmanager "ndk;25.2.9519653"
 
-      - name: Install Qt Android Environment
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Install Qt 6
         uses: jurplel/install-qt-action@v3
         with:
-          version: '5.15.2'
-          target: 'android'
-          arch: 'android'
+          version: '6.6.3'
+          target: android
+          arch: android_arm64_v8a
 
-      - name: Generate Android Deployment Project
+      - name: Verify Installation
         run: |
-          echo "TEMPLATE = app" > Cysite.pro
-          echo "TARGET = Cysite" >> Cysite.pro
-          echo "QT += widgets" >> Cysite.pro
-          echo "SOURCES += main.cpp" >> Cysite.pro  
-         
-          # Generate localized Makefiles using the persistent NDK path
-          qmake Cysite.pro -spec android-clang ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
+          qmake -v
+          java -version
+          sdkmanager --version
 
-      - name: Compiling and Building Installable APK
+      - name: Create Demo Project
         run: |
-          # Build the underlying C++ backend binary libraries
+          cat > Cysite.pro <<EOF
+          TEMPLATE = app
+          TARGET = Cysite
+
+          QT += widgets
+
+          CONFIG += c++17
+
+          SOURCES += main.cpp
+          EOF
+
+      - name: Generate Makefiles
+        run: |
+          qmake \
+            Cysite.pro \
+            -spec android-clang \
+            ANDROID_ABIS=arm64-v8a \
+            ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
+
+      - name: Compile
+        run: |
           make -j$(nproc)
-          
-          # FIX: Direct the deployment script to pack the platform plugin correctly
-          make apk ANDROID_DEPLOYMENT_SETTINGS=android-Cysite-deployment-settings.json
-          
-      - name: Upload Output Installable APK
+
+      - name: Build APK
+        run: |
+          make apk
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Cysite-installable-apk
-          path: ./**/*.apk
+          name: android-apk
+          path: |
+            **/*.apk
