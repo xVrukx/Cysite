@@ -28,7 +28,7 @@ jobs:
           moc main.cpp -o main.moc
           
           # Compile the application using the matching architecture flags
-          g++ -O3 -std=c++17 main.cpp -o neon_notes_android -fPIC $(pkg-config --cflags --libs Qt5Widgets)
+          g++ -O3 -std=c++17 main.cpp -o Cysite_android -fPIC $(pkg-config --cflags --libs Qt5Widgets)
 
       - name: Upload Output APK
         uses: actions/upload-artifact@v4
