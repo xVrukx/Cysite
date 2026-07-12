@@ -2,6 +2,8 @@ name: Build Android APK
 
 on:
   push:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -12,7 +14,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,19 +23,26 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android NDK r25c
+      - name: Install Android NDK
         run: |
           sdkmanager "ndk;25.2.9519653"
 
           echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
 
-      - name: Install Qt 6
+      - name: Install Qt Desktop
         uses: jurplel/install-qt-action@v3
         with:
           version: '6.6.3'
-          target: android
-          arch: android_arm64_v8a
+          target: 'desktop'
+          arch: 'gcc_64'
+
+      - name: Install Qt Android
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '6.6.3'
+          target: 'android'
+          arch: 'android_arm64_v8a'
 
       - name: Verify Installation
         run: |
@@ -41,38 +50,24 @@ jobs:
           java -version
           sdkmanager --version
 
-      - name: Create Demo Project
-        run: |
-          cat > Cysite.pro <<EOF
-          TEMPLATE = app
-          TARGET = Cysite
-
-          QT += widgets
-
-          CONFIG += c++17
-
-          SOURCES += main.cpp
-          EOF
-
       - name: Generate Makefiles
         run: |
-          qmake \
-            Cysite.pro \
-            -spec android-clang \
-            ANDROID_ABIS=arm64-v8a \
-            ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
+          qmake Cysite.pro \
+              -spec android-clang \
+              ANDROID_ABIS=arm64-v8a \
+              ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT
 
-      - name: Compile
+      - name: Build
         run: |
           make -j$(nproc)
 
-      - name: Build APK
+      - name: Package APK
         run: |
           make apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: Cysite-APK
           path: |
             **/*.apk
