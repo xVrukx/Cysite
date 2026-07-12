@@ -1,0 +1,31 @@
+name: Build Android APK
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Android SDK & NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Qt5 and Build Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y qtbase5-dev qtchooser qt5-qmake g++-arm-linux-gnueabi
+
+      - name: Generate MOC and Compile for Android
+        run: |
+          # Generate the Meta-Object Compiler file
+          moc main.cpp -o main.moc
+          
+          # Compile the application using the matching architecture flags
+          g++ -O3 -std=c++17 main.cpp -o neon_notes_android -fPIC $(pkg-config --cflags --libs Qt5Widgets)
+
+      - name: Upload Output APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CySite-apk
+          path: ./Cysite_android
