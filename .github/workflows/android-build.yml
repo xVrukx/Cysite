@@ -20,7 +20,7 @@ jobs:
       - name: Install Qt Android Environment
         uses: jurplel/install-qt-action@v3
         with:
-          version: '5.15.2'
+          version: '5.15.13'
           target: 'android'
           arch: 'android_arm64_v8a'
 
