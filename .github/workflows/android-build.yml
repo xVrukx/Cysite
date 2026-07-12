@@ -27,7 +27,7 @@ jobs:
       - name: Generate Android Deployment Project
         run: |
           echo "TEMPLATE = app" > Cysite.pro
-          echo "TARGET = neon_notes" >> Cysite.pro
+          echo "TARGET = Cysite" >> Cysite.pro
           echo "QT += widgets" >> Cysite.pro
           echo "SOURCES += main.cpp" >> Cysite.pro
           
@@ -45,5 +45,5 @@ jobs:
       - name: Upload Output Installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: neon-notes-installable-apk
+          name: Cysite-installable-apk
           path: ./**/*.apk
