@@ -1,6 +1,10 @@
 name: Build Android APK
 on: [push, workflow_dispatch]
 
+# FIX 1: Set the NDK root globally for the entire workflow
+env:
+  ANDROID_NDK_ROOT: ${{ github.workspace }}/android-sdk/ndk/25.2.9519653
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -18,7 +22,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install Stable Android NDK r25c
-        run: |
+        run:|
           ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653"
 
       - name: Install Qt Android Environment
@@ -29,22 +33,28 @@ jobs:
           arch: 'android'
 
       - name: Generate Android Deployment Project
-        run: |
+        run:|
           echo "TEMPLATE = app" > Cysite.pro
           echo "TARGET = Cysite" >> Cysite.pro
           echo "QT += widgets" >> Cysite.pro
           echo "SOURCES += main.cpp" >> Cysite.pro  
          
-          export ANDROID_NDK_HOME="${ANDROID_SDK_ROOT}/ndk/25.2.9519653"
-          qmake Cysite.pro -spec android-clang ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+          # Point explicitly to the newly downloaded sdkmanager NDK directory
+          export REAL_NDK="${ANDROID_SDK_ROOT}/ndk/25.2.9519653"
+          qmake Cysite.pro -spec android-clang ANDROID_NDK_ROOT=$REAL_NDK ANDROID_NDK_HOST=linux-x86_64
 
       - name: compiling and building installable apk
-        run: |
-          # Build the C++ Shared Library
-          make -j$(nproc)
+        run:|
+          # FIX 2: Explicitly map the NDK variable into the runtime execution context
+          export REAL_NDK="${ANDROID_SDK_ROOT}/ndk/25.2.9519653"
           
-          # package raw background folders into a standard debug .apk package
-          make apk
+          # Build the C++ Shared Library
+          make -j$(nproc) ANDROID_NDK_ROOT=$REAL_NDK
+          
+          # Force make apk to use the r25c toolchain instead of defaulting back to v27
+          make apk ANDROID_NDK_ROOT=$REAL_NDK
+        env:
+          ANDROID_NDK_ROOT: /usr/local/lib/android/sdk/ndk/25.2.9519653
 
       - name: Upload Output Installable APK
         uses: actions/upload-artifact@v4
