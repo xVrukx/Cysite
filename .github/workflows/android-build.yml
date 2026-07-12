@@ -67,6 +67,7 @@ jobs:
       - name: Build
         run: |
           make -j$(nproc)
+          make install INSTALL_ROOT=android-build
 
       - name: Package APK
         run: |
@@ -74,7 +75,6 @@ jobs:
             --input android-Cysite-deployment-settings.json \
             --output android-build \
             --android-platform android-34 \
-            --apk
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
