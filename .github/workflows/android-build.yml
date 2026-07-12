@@ -17,6 +17,10 @@ jobs:
       - name: Install Android SDK & NDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Stable Android NDK r25c
+        run: |
+          ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653"
+
       - name: Install Qt Android Environment
         uses: jurplel/install-qt-action@v3
         with:
